@@ -1,0 +1,31 @@
+name: 🔍 تقرير المراقب اليومي - بصيرة
+
+on:
+  schedule:
+    # 9:00 مساءً بتوقيت مصر (19:00 UTC)
+    - cron: "0 19 * * *"
+  workflow_dispatch: # تشغيل يدوي للاختبار
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 سحب الكود
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 إعداد Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 تثبيت المكتبات
+        run: pip install -r requirements.txt
+
+      - name: 📊 إرسال التقرير اليومي
+        env:
+          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+          OWNER_CHAT_ID: ${{ secrets.OWNER_CHAT_ID }}
+        run: python monitor/monitor.py

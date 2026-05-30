@@ -1,0 +1,54 @@
+name: 📢 نشر بوست يومي - بصيرة
+
+on:
+  schedule:
+    # البوست الأول - 9:00 صباحاً بتوقيت مصر (7:00 UTC)
+    - cron: "0 7 * * *"
+    # البوست الثاني - 7:00 مساءً بتوقيت مصر (17:00 UTC)
+    - cron: "0 17 * * *"
+  workflow_dispatch: # تشغيل يدوي للاختبار
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 سحب الكود
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 إعداد Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 تثبيت المكتبات
+        run: pip install -r requirements.txt
+
+      - name: 🚀 نشر البوست
+        env:
+          PUBLISHER_TOKEN: ${{ secrets.PUBLISHER_TOKEN }}
+          TELEGRAM_CHANNEL: ${{ secrets.TELEGRAM_CHANNEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python publisher/publish.py
+
+      - name: 💾 حفظ اللوج
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daily-log-${{ github.run_number }}
+          path: logs/daily_log.json
+          retention-days: 30
+
+      - name: 📤 رفع اللوج للـ repo
+        if: always()
+        run: |
+          git config --global user.name "Baseera Bot"
+          git config --global user.email "baseera@bot.com"
+          git add logs/daily_log.json || true
+          git diff --staged --quiet || git commit -m "📊 تحديث اللوج اليومي [skip ci]"
+          git push || true
